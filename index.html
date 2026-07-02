@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartReceipt — ניהול קבלות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&family=Rubik:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#191c22;
+    --ink-soft:#646b78;
+    --paper:#fcfbf7;
+    --bg:#ecedef;
+    --grid:rgba(25,28,34,.045);
+    --accent:#e07b1f;
+    --accent-strong:#c4660f;
+    --success:#157a5b;
+    --danger:#b3402e;
+    --hair:rgba(25,28,34,.14);
+    --shadow:0 18px 40px -18px rgba(25,28,34,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+
+  body{
+    font-family:"Heebo",system-ui,sans-serif;
+    color:var(--ink);
+    background-color:var(--bg);
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:26px 26px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:48px 20px 64px;
+  }
+
+  /* ---------- header ---------- */
+  .masthead{
+    width:100%;
+    max-width:920px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:34px;
+  }
+  .mark{
+    width:42px;height:42px;border-radius:11px;
+    background:var(--ink);
+    display:grid;place-items:center;
+    flex-shrink:0;
+  }
+  .mark span{
+    display:block;width:18px;height:22px;border-radius:2px;
+    background:var(--paper);
+    position:relative;
+  }
+  .mark span::after{
+    content:"";position:absolute;inset:4px 3px auto 3px;height:2px;
+    background:var(--accent);
+    box-shadow:0 4px 0 var(--ink),0 8px 0 var(--ink);
+  }
+  .brand{display:flex;flex-direction:column;line-height:1.05}
+  .brand b{font-family:"Rubik";font-weight:700;font-size:21px;letter-spacing:-.01em}
+  .brand small{color:var(--ink-soft);font-weight:500;font-size:12.5px;letter-spacing:.02em}
+  .masthead .meta{
+    margin-inline-start:auto;
+    font-family:"Space Mono",monospace;
+    font-size:12px;color:var(--ink-soft);
+    border:1px solid var(--hair);border-radius:999px;
+    padding:6px 13px;background:rgba(255,255,255,.55);
+  }
+
+  /* ---------- layout ---------- */
+  .stage{
+    width:100%;max-width:920px;
+    display:grid;grid-template-columns:1fr 360px;gap:30px;
+    align-items:start;
+  }
+
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--hair);
+    border-radius:18px;
+    padding:30px;
+    box-shadow:var(--shadow);
+  }
+  .panel h2{
+    margin:0 0 4px;font-family:"Rubik";font-weight:700;font-size:23px;letter-spacing:-.01em;
+  }
+  .panel .lede{margin:0 0 22px;color:var(--ink-soft);font-size:14.5px;line-height:1.55;max-width:42ch}
+
+  /* ---------- dropzone ---------- */
+  .drop{
+    border:2px dashed var(--hair);
+    border-radius:14px;
+    padding:34px 22px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .18s,background .18s,transform .18s;
+    background:rgba(224,123,31,.025);
+  }
+  .drop:hover,.drop:focus-visible{border-color:var(--accent);background:rgba(224,123,31,.06);outline:none}
+  .drop.drag{border-color:var(--accent);background:rgba(224,123,31,.1);transform:translateY(-2px)}
+  .drop .ic{
+    width:46px;height:46px;margin:0 auto 12px;
+    border-radius:12px;background:var(--ink);color:var(--paper);
+    display:grid;place-items:center;font-size:22px;
+  }
+  .drop .t1{font-weight:700;font-size:15px}
+  .drop .t2{color:var(--ink-soft);font-size:12.5px;margin-top:5px;font-family:"Space Mono",monospace;letter-spacing:.02em}
+  .drop.has-file{border-style:solid;border-color:var(--ink);background:#fff}
+
+  .file-row{display:flex;align-items:center;gap:13px;text-align:start}
+  .thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;border:1px solid var(--hair);flex-shrink:0}
+  .file-row .fn{font-weight:700;font-size:14px;word-break:break-all}
+  .file-row .fs{color:var(--ink-soft);font-size:12px;font-family:"Space Mono",monospace;margin-top:2px}
+
+  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  .btn{
+    margin-top:20px;width:100%;
+    background:var(--accent);color:#fff;border:none;
+    padding:14px 18px;border-radius:11px;cursor:pointer;
+    font-family:"Heebo";font-weight:700;font-size:16px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:background .16s,transform .08s,opacity .16s;
+  }
+  .btn:hover{background:var(--accent-strong)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn .spin{
+    width:16px;height:16px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.45);border-top-color:#fff;
+    animation:spin .7s linear infinite;display:none;
+  }
+  .btn.loading .spin{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- receipt ---------- */
+  .receipt-col{position:relative}
+  .receipt{
+    position:relative;
+    background:var(--paper);
+    padding:26px 24px 30px;
+    box-shadow:var(--shadow);
+    font-family:"Space Mono","Heebo",monospace;
+    color:var(--ink);
+    display:none;
+  }
+  .receipt.show{display:block;animation:print .45s ease both}
+  @keyframes print{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+  .receipt::before,.receipt::after{
+    content:"";position:absolute;left:0;right:0;height:11px;
+    background:
+      linear-gradient(-45deg,transparent 50%,var(--paper) 50%),
+      linear-gradient(45deg,transparent 50%,var(--paper) 50%);
+    background-size:14px 14px;background-repeat:repeat-x;
+  }
+  .receipt::before{top:-11px;background-position:bottom}
+  .receipt::after{bottom:-11px;background-position:top;transform:scaleY(-1)}
+
+  .receipt .head{text-align:center;border-bottom:2px dashed var(--hair);padding-bottom:14px;margin-bottom:14px}
+  .receipt .head .logo{font-weight:700;font-size:15px;letter-spacing:.18em}
+  .receipt .head .sub{font-size:11px;color:var(--ink-soft);margin-top:3px;letter-spacing:.04em}
+
+  .receipt .line{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin:6px 0}
+  .receipt .line b{color:var(--ink);font-weight:700}
+  .receipt .line.total-line b{color:var(--accent-strong);font-size:15px}
+
+  .status{
+    display:flex;align-items:center;gap:8px;justify-content:center;
+    font-size:13px;font-weight:700;margin:12px 0 4px;
+    font-family:"Heebo";
+  }
+  .status .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);flex-shrink:0}
+  .status.ok{color:var(--success)} .status.ok .dot{background:var(--success)}
+  .status.err{color:var(--danger)} .status.err .dot{background:var(--danger)}
+
+  .receipt .divider{border:0;border-top:2px dashed var(--hair);margin:14px 0}
+
+  .receipt-id-style {
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+    word-break: break-all;
+    margin-top: 10px;
+  }
+
+  .receipt .barcode{
+    margin-top:18px;height:38px;
+    background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 9px);
+    opacity:.85;
+  }
+  .receipt .barnum{text-align:center;font-size:10px;letter-spacing:.4em;color:var(--ink-soft);margin-top:6px}
+
+  .hint{
+    border:1px dashed var(--hair);border-radius:14px;
+    padding:30px 20px;text-align:center;color:var(--ink-soft);
+    font-size:13px;line-height:1.6;background:rgba(255,255,255,.4);
+  }
+  .hint .em{font-size:26px;display:block;margin-bottom:8px;opacity:.5}
+
+  /* ---------- history table ---------- */
+  .history{
+    width:100%;max-width:920px;margin-top:30px;
+    background:var(--paper);border:1px solid var(--hair);
+    border-radius:18px;padding:30px;box-shadow:var(--shadow);
+  }
+  .history-head{
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:16px;margin-bottom:20px;
+  }
+  .history-head h2{margin:0;font-family:"Rubik";font-weight:700;font-size:23px;letter-spacing:-.01em}
+  .summary{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+  .stat .num{font-family:"Space Mono",monospace;font-weight:700;font-size:18px;color:var(--ink)}
+  .stat .lbl{font-size:11px;color:var(--ink-soft);margin-top:3px}
+  .refresh{
+    background:transparent;border:1px solid var(--hair);border-radius:9px;
+    padding:9px 15px;cursor:pointer;font-family:"Heebo";font-weight:500;font-size:13px;color:var(--ink);
+    display:flex;align-items:center;gap:7px;transition:border-color .16s,background .16s,opacity .16s;
+  }
+  .refresh:hover{border-color:var(--accent);background:rgba(224,123,31,.06)}
+  .refresh:disabled{opacity:.5;cursor:not-allowed}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .chip{
+    border:1px solid var(--hair);background:rgba(255,255,255,.6);
+    border-radius:999px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-weight:500;
+    color:var(--ink-soft);transition:border-color .15s,background .15s,color .15s;
+  }
+  .chip:hover{border-color:var(--accent)}
+  .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip .c{font-family:"Space Mono",monospace;opacity:.7;margin-inline-start:6px}
+
+  .table-wrap{overflow-x:auto;border-radius:12px}
+  .rtable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
+  .rtable thead th{
+    text-align:start;font-weight:700;color:var(--ink-soft);font-size:12px;
+    padding:0 12px 11px;border-bottom:2px solid var(--hair);white-space:nowrap;
+  }
+  .rtable tbody td{padding:13px 12px;border-bottom:1px solid var(--grid);vertical-align:middle}
+  .rtable tbody tr{transition:background .12s}
+  .rtable tbody tr:hover{background:rgba(224,123,31,.04)}
+  .rtable .merchant{font-weight:700}
+  .rtable .date{color:var(--ink-soft);font-family:"Space Mono",monospace;font-size:12px;white-space:nowrap}
+  .rtable .amount{font-family:"Space Mono",monospace;font-weight:700;white-space:nowrap}
+  .rtable .amount.total{color:var(--accent-strong)}
+
+  .badge{
+    display:inline-block;padding:4px 11px;border-radius:999px;
+    font-size:11.5px;font-weight:700;white-space:nowrap;
+  }
+  .empty-state{
+    text-align:center;color:var(--ink-soft);font-size:13.5px;line-height:1.6;padding:42px 20px;
+  }
+
+  @media (max-width:760px){
+    .stage{grid-template-columns:1fr}
+    body{padding:30px 16px 48px}
+    .history{max-width:100%}
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="mark"><span></span></div>
+    <div class="brand">
+      <b>SmartReceipt</b>
+      <small>צלם קבלה, קבל נתונים מסודרים</small>
+    </div>
+    <div class="meta" id="clock">--:--</div>
+  </header>
+
+  <main class="stage">
+
+    <section class="panel">
+      <h2>העלאת קבלה חדשה</h2>
+      <p class="lede">בחר תמונה של הקבלה והמערכת תחלץ ממנה את הטקסט, הנתונים והקטגוריה באופן אוטומטי.</p>
+
+      <div class="drop" id="dropzone" tabindex="0" role="button" aria-label="בחר או גרור תמונת קבלה">
+        <div class="ic">⬆</div>
+        <div class="t1">גרור לכאן תמונה של קבלה או לחץ לבחירה</div>
+        <div class="t2">PNG · JPG · עד 10MB</div>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*">
+
+      <button class="btn" id="processBtn" onclick="uploadReceipt()" disabled>
+        <span class="spin"></span>
+        <span id="btnLabel">עבד קבלה</span>
+      </button>
+    </section>
+
+    <section class="receipt-col">
+      <div class="hint" id="hint">
+        <span class="em">🧾</span>
+        עוד לא נותחה קבלה.<br>בחר תמונה ולחץ "עבד קבלה" כדי לראות את התוצאה כאן.
+      </div>
+
+      <article class="receipt" id="receipt" aria-live="polite">
+        <div class="head">
+          <div class="logo">SMARTRECEIPT</div>
+          <div class="sub">ניתוח אוטומטי חכם · REKOGNITION AI</div>
+        </div>
+
+        <div class="line"><span>תאריך העלאה</span><b id="recDate">—</b></div>
+        <div class="line"><span>קובץ מקור</span><b id="recFile">—</b></div>
+        <div class="line"><span>בית עסק</span><b id="recMerchant">—</b></div>
+        <div class="line"><span>קטגוריה</span><b id="recCategory">—</b></div>
+
+        <div class="line"><span>מתוכו מע"מ</span><b id="recVat">—</b></div>
+        <div class="line"><span>אמצעי תשלום</span><b id="recPayment">—</b></div>
+
+        <div class="line total-line"><span>סך הכל לתשלום</span><b id="recTotal">—</b></div>
+
+        <div class="status" id="status"><span class="dot"></span><span id="statusText">מעבד נתונים…</span></div>
+
+        <hr class="divider">
+        <div class="receipt-id-style" id="receiptId"></div>
+
+        <div class="barcode"></div>
+        <div class="barnum" id="barnum">0000 0000 0000</div>
+      </article>
+    </section>
+
+  </main>
+
+  <!-- ===================== היסטוריית קבלות ===================== -->
+  <section class="history" id="history">
+    <div class="history-head">
+      <h2>היסטוריית קבלות</h2>
+      <div class="summary">
+        <div class="stat"><span class="num" id="statCount">0</span><span class="lbl">קבלות שמורות</span></div>
+        <div class="stat"><span class="num" id="statTotal">0 $</span><span class="lbl">סך כל ההוצאות</span></div>
+        <button class="refresh" id="refreshBtn" onclick="loadReceipts()">↻ רענן</button>
+      </div>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead>
+          <tr>
+            <th>תאריך</th>
+            <th>בית עסק</th>
+            <th>קטגוריה</th>
+            <th>אמצעי תשלום</th>
+            <th>מע"מ</th>
+            <th>סך הכל</th>
+          </tr>
+        </thead>
+        <tbody id="rtbody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState">טוען קבלות מהשרת…</div>
+    </div>
+  </section>
+
+<script>
+  const API_GATEWAY_URL = 'https://4i7nyfhd21.execute-api.us-east-1.amazonaws.com/upload';
+
+  // צבעים מותאמים אישית לכל קטגוריה חדשה באנגלית כפי שביקשת
+  const CATEGORY_STYLES = {
+    'Marketing and Advertising'        : {bg:'#efeafa', fg:'#5b3f9c'}, // סגול
+    'Food and Hospitality'             : {bg:'#e8f3ee', fg:'#157a5b'}, // ירוק
+    'Travel and Transportation'        : {bg:'#e7eefb', fg:'#2a5c9c'}, // כחול
+    'IT and Equipment'                 : {bg:'#fdeede', fg:'#c4660f'}, // כתום
+    'Maintenance and General Expenses' : {bg:'#eceef0', fg:'#646b78'}, // אפור
+  };
+  const DEFAULT_CAT = 'Maintenance and General Expenses';
+
+  let allReceipts = [];
+  let activeFilter = 'all';
+
+  const fileInput   = document.getElementById('fileInput');
+  const dropzone    = document.getElementById('dropzone');
+  const processBtn  = document.getElementById('processBtn');
+  const btnLabel    = document.getElementById('btnLabel');
+  const receipt     = document.getElementById('receipt');
+  const hint        = document.getElementById('hint');
+  const statusEl    = document.getElementById('status');
+  const statusText  = document.getElementById('statusText');
+  const recMerchant = document.getElementById('recMerchant');
+  const recCategory = document.getElementById('recCategory');
+  const recVat      = document.getElementById('recVat');
+  const recPayment  = document.getElementById('recPayment');
+  const recTotal    = document.getElementById('recTotal');
+  const receiptIdEl = document.getElementById('receiptId');
+  const recDate     = document.getElementById('recDate');
+  const recFile     = document.getElementById('recFile');
+  const barnum      = document.getElementById('barnum');
+
+  function tick(){
+    const d = new Date();
+    document.getElementById('clock').textContent =
+      d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  }
+  tick(); setInterval(tick,1000);
+
+  dropzone.addEventListener('click', ()=>fileInput.click());
+  ['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.remove('drag');}));
+  dropzone.addEventListener('drop', e=>{
+    if(e.dataTransfer.files.length){ fileInput.files = e.dataTransfer.files; showFile(); }
+  });
+  fileInput.addEventListener('change', showFile);
+
+  function fmtSize(b){
+    if(b < 1024) return b + ' B';
+    if(b < 1048576) return (b/1024).toFixed(0) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  function showFile(){
+    if(!fileInput.files.length){ return; }
+    const file = fileInput.files[0];
+    const url  = URL.createObjectURL(file);
+    dropzone.classList.add('has-file');
+    dropzone.innerHTML =
+      '<div class="file-row">' +
+        '<img class="thumb" src="'+url+'" alt="תצוגה מקדימה">' +
+        '<div><div class="fn">'+file.name+'</div>' +
+        '<div class="fs">'+fmtSize(file.size)+' · לחץ להחלפה</div></div>' +
+      '</div>';
+    processBtn.disabled = false;
+  }
+
+  function setStatus(text, kind){
+    statusText.textContent = text;
+    statusEl.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function uploadReceipt(){
+    if(fileInput.files.length === 0) return;
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    hint.style.display = 'none';
+    receipt.classList.remove('show'); void receipt.offsetWidth; receipt.classList.add('show');
+    processBtn.classList.add('loading');
+    processBtn.disabled = true;
+    btnLabel.textContent = 'מנתח…';
+
+    recDate.textContent = new Date().toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    recFile.textContent = file.name.length > 22 ? file.name.slice(0,19)+'…' : file.name;
+    barnum.textContent  = String(Date.now()).slice(-12).replace(/(\d{4})(\d{4})(\d{4})/,'$1 $2 $3');
+
+    // איפוס שדות
+    recMerchant.textContent = '—';
+    recCategory.textContent = '—';
+    recVat.textContent = '—';
+    recPayment.textContent = '—';
+    recTotal.textContent = '—';
+    receiptIdEl.textContent = '';
+    setStatus('מנתח את אמינות הקובץ והנתונים…', '');
+
+    reader.onloadend = async function(){
+      const base64Image = reader.result.split(',')[1];
+      try{
+        const response = await fetch(API_GATEWAY_URL, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ image: base64Image })
+        });
+        const data = await response.json();
+
+        if(response.ok){
+          setStatus('הקבלה נשמרה ונותחה בהצלחה', 'ok');
+          recMerchant.textContent = data.merchant || 'לא זוהה';
+          recCategory.textContent = data.category || DEFAULT_CAT;
+          recVat.textContent = data.vat ? data.vat + ' $' : '0.00 $';
+          recPayment.textContent = data.paymentMethod || 'לא זוהה';
+          recTotal.textContent = data.total ? data.total + ' $' : '0.00 $';
+          receiptIdEl.textContent = 'ID מערכת: ' + data.receiptId;
+          loadReceipts();   // רענון הטבלה אחרי שמירה מוצלחת
+        } else {
+          // טיפול בשגיאת הוולידציה (תמונה שאינה קבלה)
+          setStatus('עיבוד נכשל', 'err');
+          receiptIdEl.innerHTML = `<b style="color:var(--danger);">${data.error || 'שגיאה בעיבוד.'}</b>`;
+        }
+      }catch(error){
+        setStatus('שגיאת תקשורת עם השרת', 'err');
+        receiptIdEl.textContent = 'לא ניתן היה להתחבר לשרת.';
+        console.error(error);
+      }finally{
+        processBtn.classList.remove('loading');
+        processBtn.disabled = false;
+        btnLabel.textContent = 'עבד קבלה';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* ===================== היסטוריה ===================== */
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+    ));
+  }
+
+  function fmtMoney(v){
+    const n = parseFloat(v);
+    if(isNaN(n)) return (v || '—');
+    return n.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' $';
+  }
+
+  function fmtDate(iso){
+    if(!iso) return '—';
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return iso;
+    return d.toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+
+  function badgeFor(cat){
+    const c = cat || DEFAULT_CAT;
+    const s = CATEGORY_STYLES[c] || CATEGORY_STYLES[DEFAULT_CAT];
+    return `<span class="badge" style="background:${s.bg};color:${s.fg}">${escapeHtml(c)}</span>`;
+  }
+
+  function setFilter(cat){ activeFilter = cat; renderHistory(); }
+
+  async function loadReceipts(){
+    const refreshBtn = document.getElementById('refreshBtn');
+    if(refreshBtn) refreshBtn.disabled = true;
+    try{
+      const res = await fetch(API_GATEWAY_URL, { method:'GET' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      allReceipts = Array.isArray(data.receipts) ? data.receipts : [];
+      renderHistory();
+    }catch(e){
+      console.error('loadReceipts:', e);
+      document.getElementById('rtbody').innerHTML = '';
+      const empty = document.getElementById('emptyState');
+      empty.style.display = 'block';
+      empty.textContent = 'לא ניתן לטעון את ההיסטוריה מהשרת. ודא שמוגדר GET ב-API Gateway.';
+    }finally{
+      if(refreshBtn) refreshBtn.disabled = false;
+    }
+  }
+
+  function renderHistory(){
+    // ספירה לפי קטגוריה (לצ'יפים)
+    const counts = {};
+    allReceipts.forEach(r=>{
+      const c = r.Category || DEFAULT_CAT;
+      counts[c] = (counts[c] || 0) + 1;
+    });
+
+    // צ'יפים לסינון
+    let chips = `<span class="chip ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">הכל<span class="c">${allReceipts.length}</span></span>`;
+    Object.keys(counts).sort().forEach(c=>{
+      const safe = c.replace(/'/g, "\\'");
+      chips += `<span class="chip ${activeFilter===c?'active':''}" onclick="setFilter('${safe}')">${escapeHtml(c)}<span class="c">${counts[c]}</span></span>`;
+    });
+    document.getElementById('filters').innerHTML = chips;
+
+    // סינון השורות
+    const rows = (activeFilter === 'all')
+      ? allReceipts
+      : allReceipts.filter(r => (r.Category || DEFAULT_CAT) === activeFilter);
+
+    const tbody = document.getElementById('rtbody');
+    const empty = document.getElementById('emptyState');
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      empty.textContent = allReceipts.length === 0
+        ? 'עדיין אין קבלות שמורות. העלה את הקבלה הראשונה שלך!'
+        : 'אין קבלות בקטגוריה זו.';
+    } else {
+      empty.style.display = 'none';
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td class="date">${fmtDate(r.UploadDate)}</td>
+          <td class="merchant">${escapeHtml(r.MerchantName || '—')}</td>
+          <td>${badgeFor(r.Category)}</td>
+          <td>${escapeHtml(r.PaymentMethod || '—')}</td>
+          <td class="amount">${fmtMoney(r.VatAmount)}</td>
+          <td class="amount total">${fmtMoney(r.TotalAmount)}</td>
+        </tr>`).join('');
+    }
+
+    // סיכום
+    document.getElementById('statCount').textContent = allReceipts.length;
+    const sum = allReceipts.reduce((acc, r) => acc + (parseFloat(r.TotalAmount) || 0), 0);
+    document.getElementById('statTotal').textContent =
+      sum.toLocaleString('he-IL',{maximumFractionDigits:2}) + ' $';
+  }
+
+  // טעינת ההיסטוריה עם עליית הדף
+  loadReceipts();
+</script>
+</body>
+</html>
